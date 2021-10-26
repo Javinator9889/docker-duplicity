@@ -1,22 +1,37 @@
 #!/usr/bin/env python
-from __future__ import print_function
 
 import os
-import subprocess
 import sys
+import cmdutils
+from logging_utils import get_logger
 
-# Expand shell commands from environment options
-options = subprocess.check_output(
-    "echo -n " + os.environ["OPTIONS"], shell=True, stderr=subprocess.STDOUT, text=True
-)
-options_extra = subprocess.check_output(
-    "echo -n " + os.environ["OPTIONS_EXTRA"],
-    shell=True,
-    stderr=subprocess.STDOUT,
-    text=True,
-)
 
-# Execute via duplicity
-command = "duplicity {} {} {}".format(options, options_extra, " ".join(sys.argv[1:]))
-print("Executing: {}".format(command))
-os.execlp("sh", "sh", "-c", command)
+# define system logger that will be used
+log = get_logger()
+
+# Gather options from environment
+options = os.environ.get("OPTIONS", "")
+if options:
+    log.info('Gathered the following standard options: "%s"', options)
+else:
+    log.warning("No standard options defined")
+
+options_extra = os.environ.get("OPTIONS_EXTRA", "")
+if options_extra:
+    log.info('Gathered the following extra options: "%s"', options_extra)
+else:
+    log.warning("No extra options defined")
+
+# Get any extra option from CLI args
+args = " ".join(sys.argv[1:])
+if args:
+    log.info('CLI args: "%s"', args)
+
+# And join all them in a single command
+cmd = f"duplicity {options} {options_extra} {args}"
+
+log.info('Running command: "%s"', cmd)
+
+# start the run and output constantly to console. This is the
+# latest command we run, so directly exit the script when done
+sys.exit(cmdutils.run(cmd, log=log)[0])

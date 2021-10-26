@@ -10,7 +10,7 @@ ENV CRONTAB_15MIN='*/15 * * * *' \
     EMAIL_FROM='' \
     EMAIL_SUBJECT='Backup report: {hostname} - {periodicity} - {result}' \
     EMAIL_TO='' \
-    JOB_300_WHAT='backup' \
+    JOB_300_WHAT='dup \$SRC \$DST' \
     JOB_300_WHEN='daily' \
     OPTIONS='' \
     OPTIONS_EXTRA='--metadata-sync-mode partial' \
@@ -71,6 +71,7 @@ RUN apk add --no-cache --virtual .build \
     && rm -rf /root/.cargo
 
 COPY bin/* /usr/local/bin/
+COPY templates/* /usr/local/share/templates/
 RUN chmod a+rx /usr/local/bin/* && sync
 
 FROM base AS s3
