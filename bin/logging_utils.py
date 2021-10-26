@@ -18,7 +18,6 @@ import logging
 import os
 from sys import stdout
 
-
 # Default format to use when logging messages:
 # <ACTUAL TIME> [<LEVEL NAME>]    <MESSAGE>
 LOG_DEFAULT_FORMAT = "%(asctime)s [%(levelname)s]\t%(message)s"

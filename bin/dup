@@ -2,9 +2,9 @@
 
 import os
 import sys
+
 import cmdutils
 from logging_utils import get_logger
-
 
 # define system logger that will be used
 log = get_logger()

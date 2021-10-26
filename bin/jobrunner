@@ -3,15 +3,15 @@
 import os
 import re
 import sys
-from os import environ, path
 from datetime import datetime, timedelta
+from os import environ, path
+from pathlib import Path
 from socket import getfqdn
 from string import Template
-from pathlib import Path
-import cmdutils
-from logging_utils import get_logger
-from email_client import Email
 
+import cmdutils
+from email_client import Email
+from logging_utils import get_logger
 
 TMP_JOB_PATH = r"/tmp"
 RUNNER_FILE = "jobrunner."

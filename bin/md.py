@@ -16,8 +16,8 @@
 """Contains Markdown-related functions, variables and more"""
 import mistune
 from pygments import highlight
-from pygments.lexers import get_lexer_by_name
 from pygments.formatters import html
+from pygments.lexers import get_lexer_by_name
 
 
 class HighlightRenderer(mistune.Renderer):

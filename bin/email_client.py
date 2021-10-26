@@ -14,15 +14,15 @@
 #     You should have received a copy of the GNU General Public License
 #    along with this program. If not, see <http://www.gnu.org/licenses/>.
 """Email service wrapped at :class:`Email` class"""
-from os import environ
-from smtplib import SMTP, SMTP_SSL
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from os import environ
+from smtplib import SMTP, SMTP_SSL
+
 import mistune
 from jinja_utils import Jinja
-from md import HighlightRenderer
-
 from logging_utils import get_logger
+from md import HighlightRenderer
 
 
 class Email:

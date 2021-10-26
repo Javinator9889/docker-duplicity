@@ -14,14 +14,14 @@
 #     You should have received a copy of the GNU General Public License
 #    along with this program. If not, see <http://www.gnu.org/licenses/>.
 """Different utilities that help running long commands, capture outputs, etc"""
+import logging
 import os
 import re
 import shlex
-import logging
 from string import Template
+from subprocess import PIPE, Popen
 from sys import stderr
 from typing import MutableMapping
-from subprocess import Popen, PIPE
 
 
 def run(
