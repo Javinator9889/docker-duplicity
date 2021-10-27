@@ -8,8 +8,10 @@ from os import environ, path
 from pathlib import Path
 from socket import getfqdn
 from string import Template
+from time import sleep
 
 import cmdutils
+import fasteners
 from email_client import Email
 from logging_utils import get_logger
 
@@ -25,11 +27,37 @@ log.name = "jobrunner"
 periodicity = path.basename(path.dirname(path.abspath(__file__)))
 log.info("Running %s jobs", periodicity)
 
+# Here we define the following algorithm:
+#  1. There is a running process (suffixed with a '.1') and
+#     at most one waiting process (suffixed with a '.2')
+#
+#  2. If there are no free slots, we immediately quit as one
+#     job is already running and the other one is waiting.
+#
+#  3. In other case, we define *two* lock files: the one
+#     corresponding to the running process and the other one
+#     to our position in the queue. Notice that both files
+#     can be the same if there is no process waiting in the
+#     queue.
+#
+#  4. Before trying to access for running the jobs, we try
+#     to acquire the lock. If we are in the waiting queue,
+#     we will be locked from entering until the lock is released.
+#
+#  5. When we acquire the lock, a check is required to see if we
+#     were in the waiting queue, in order to remove the queue file.
+#     This can be easily checked by seeing if `ME` is 2.
+#
+#  6. Finally, when all jobs are done, we release the lock and check
+#     if any other process is now holding it. If `True`, the lock
+#     is kept intact. In other case, it means that we are the only
+#     process holding the file so we can safely remove it.
+#
 # Check if there is another jobrunning running and another
 # waiting. We implement a queue-like system based on files
 runners_exists = (
-    os.path.exists(f"{TMP_JOB_PATH}/{RUNNER_FILE}.1"),
-    os.path.exists(f"{TMP_JOB_PATH}/{RUNNER_FILE}.2"),
+    os.path.exists(f"{TMP_JOB_PATH}/{RUNNER_FILE}-{periodicity}.1"),
+    os.path.exists(f"{TMP_JOB_PATH}/{RUNNER_FILE}-{periodicity}.2"),
 )
 
 if all(runners_exists):
@@ -38,7 +66,12 @@ if all(runners_exists):
 else:
     # prevent any other runner to "join the party"
     ME = 1 if runners_exists[0] else 2
-    Path(f"{TMP_JOB_PATH}/{RUNNER_FILE}.{ME}").touch(mode=0o744)
+    running_file = Path(f"{TMP_JOB_PATH}/{RUNNER_FILE}-{periodicity}.1")
+    queue_file = Path(f"{TMP_JOB_PATH}/{RUNNER_FILE}-{periodicity}.{ME}")
+    # we create the file here so no other process tries to enqueue, if
+    # we are the '.2'
+    queue_file.touch(mode=0o644)
+    lock = fasteners.InterProcessLock(running_file, logger=log)
 
 # Get email subject
 subject = environ.get("EMAIL_SUBJECT")
@@ -56,42 +89,73 @@ for key, when in environ.items():
 
 if not to_run:
     log.info("Nothing to do")
+    # release the lock file before exiting
+    with fasteners.try_lock(lock) as gotten:
+        # we are the only process that has the lock, so remove it.
+        # If there is any other process expecting to enter but we
+        # have removed the lock, there is no problem at all as that
+        # process will create the lock if necessary
+        if gotten:
+            log.debug("Removing running lock file...")
+            running_file.unlink(missing_ok=True)
+
+    log.debug("Removing queue file from system...")
+    queue_file.unlink(missing_ok=True)
     sys.exit()
 
+# hold the file lock until finished. Then, delete the file so another
+# job can start running
+with lock:
+    # we were waiting in the queue, so remove that file in order to allow
+    # enqueueing another process
+    if ME == 2:
+        queue_file.unlink(missing_ok=True)
 
-failed = False
-job_list = []
-for njob, command in sorted(to_run.items()):
-    expanded_command = Template(command).safe_substitute(environ)
-    job_start = datetime.now()
-    safe_command = cmdutils.print_command(expanded_command)
-    log.info("Running job %d: `%s`", njob, safe_command)
+    failed = False
+    job_list = []
+    for njob, command in sorted(to_run.items()):
+        expanded_command = Template(command).safe_substitute(environ)
+        job_start = datetime.now()
+        safe_command = cmdutils.print_command(expanded_command)
+        log.info("Running job %d: `%s`", njob, safe_command)
 
-    # we do not want to use our logger if executing "dup" command as it uses its own logger
-    cmd_logger = None if re.match(r"^dup\s+", expanded_command) is not None else log
-    ret, res = cmdutils.run(expanded_command, log=cmd_logger)
-    if ret != 0:
-        log.critical("Failure during execution job!")
-        log.critical(res)
-        failed = True
+        # we do not want to use our logger if executing "dup" command as it uses its own logger
+        cmd_logger = None if re.match(r"^dup\s+", expanded_command) is not None else log
+        ret, res = cmdutils.run(expanded_command, log=cmd_logger)
+        if ret != 0:
+            log.critical("Failure during execution job!")
+            log.critical(res)
+            failed = True
 
-    job_end = datetime.now()
-    job_list.append(
-        {
-            "id": njob,
-            "start_time": job_start,
-            "end_time": job_end,
-            "duration": timedelta(microseconds=(job_end - job_start).microseconds),
-            "command": safe_command,
-            "output": res,
-            "status": "Success" if ret == 0 else "Failure",
-        }
-    )
-    if failed and exit_on_error:
-        log.critical(
-            'Job "%s" failed and user set "EXIT_ON_ERROR" to true. No more jobs will be run'
+        job_end = datetime.now()
+        job_list.append(
+            {
+                "id": njob,
+                "start_time": job_start,
+                "end_time": job_end,
+                "duration": timedelta(microseconds=(job_end - job_start).microseconds),
+                "command": safe_command,
+                "output": res,
+                "status": "Success" if ret == 0 else "Failure",
+            }
         )
-        break
+        if failed and exit_on_error:
+            log.critical(
+                'Job "%s" failed and user set "EXIT_ON_ERROR" to true. No more jobs will be run'
+            )
+            break
+
+# give sometime other process to acquire the lock if we are
+# "too fast and too furious"
+sleep(0.1)
+with fasteners.try_lock(lock) as gotten:
+    # we are the only process that holds the lock, so remove it
+    if gotten:
+        log.debug("Removing running lock file...")
+        running_file.unlink(missing_ok=True)
+
+log.debug("Removing queue file from system...")
+queue_file.unlink(missing_ok=True)
 
 end_time = datetime.now()
 data_dict = {
