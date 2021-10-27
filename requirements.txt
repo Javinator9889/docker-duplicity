@@ -168,7 +168,7 @@ dropbox==8.9.0 \
     --hash=sha256:e7eeac47f35e73b34023b7a3089380e74bacd0cce4b57e1e347539dfb53681d2
 duplicity==0.8.20; (python_version > "2.6" and python_full_version < "3.0.0") or (python_full_version >= "3.5.0" and python_version < "4") \
     --hash=sha256:488af2ecadb059214074f2b3ac51bf9d7de55a800e37ccc2f1075cd0a74940e3
-fasteners==0.16.3; python_version > "2.6" and python_full_version < "3.0.0" or python_full_version >= "3.5.0" and python_version < "4" \
+fasteners==0.16.3 \
     --hash=sha256:8408e52656455977053871990bd25824d85803b9417aa348f10ba29ef0c751f7 \
     --hash=sha256:b1ab4e5adfbc28681ce44b3024421c4f567e705cc3963c732bf1cba3348307de
 future==0.18.2; python_version > "2.6" and python_full_version < "3.0.0" or python_full_version >= "3.5.0" and python_version < "4" \
@@ -654,7 +654,7 @@ simplejson==3.17.5; python_version >= "2.5" and python_full_version < "3.0.0" or
     --hash=sha256:2df15814529a4625ea6f7b354a083609b3944c269b954ece0d0e7455872e1b2a \
     --hash=sha256:71a54815ec0212b0cba23adc1b2a731bdd2df7b9e4432718b2ed20e8aaf7f01a \
     --hash=sha256:91cfb43fb91ff6d1e4258be04eee84b51a4ef40a28d899679b9ea2556322fb50
-six==1.16.0; python_version >= "3.6" and python_full_version < "3.0.0" or python_full_version >= "3.6.0" and python_version >= "3.6" and python_version < "4" \
+six==1.16.0; python_version >= "3.6" and python_full_version < "3.0.0" or python_full_version >= "3.6.0" and python_version < "4" and python_version >= "3.6" \
     --hash=sha256:8abb2f1d86890a2dfb989f9a77cfcfd3e47c2a354b01111771326f8aa26e0254 \
     --hash=sha256:1e61c37477a1626458e36f7b1d82aa5c9b094fa4802892072e49de9c60c4c926
 stevedore==1.20.1 \
