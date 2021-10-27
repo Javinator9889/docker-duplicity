@@ -61,7 +61,6 @@ def run(
         error = log.error
 
     cmd = Template(cmd).safe_substitute(env)
-    log.debug("Running command: %s", cmd)
 
     with Popen(
         cmd if shell else shlex.split(cmd),
