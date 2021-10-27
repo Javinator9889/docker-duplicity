@@ -25,7 +25,10 @@ from typing import MutableMapping
 
 
 def run(
-    cmd: str, env: MutableMapping = None, log: logging.Logger = None
+    cmd: str,
+    env: MutableMapping = None,
+    log: logging.Logger = None,
+    shell=False,
 ) -> tuple[int, str]:
     """Runs the given command by using the `subprocess` module, wraps the
     output and prints it line by line while it's still running. When finished,
@@ -61,7 +64,12 @@ def run(
     log.debug("Running command: %s", cmd)
 
     with Popen(
-        shlex.split(cmd), stdout=PIPE, stderr=PIPE, bufsize=1, universal_newlines=True
+        cmd if shell else shlex.split(cmd),
+        stdout=PIPE,
+        stderr=PIPE,
+        bufsize=1,
+        universal_newlines=True,
+        shell=shell,
     ) as proc:
         for line in proc.stdout:
             info(line)
@@ -83,7 +91,7 @@ def run(
 # substitution. This allows adding new options without
 # the need to modify source code, just this constant
 DATA_PATTERN = {
-    (re.compile(r"-p.*\s{1}"), r"-p******** "),
+    (re.compile(r"\s{1}-p.*\s{1}"), r" -p******** "),
 }
 
 
