@@ -42,6 +42,7 @@
   - [PostgreSQL (`docker-duplicity-postgres`)](#postgresql-docker-duplicity-postgres)
   - [MySQL (`docker-duplicity-mysql`)](#mysql-docker-duplicity-mysql)
   - [Docker (`docker-duplicity-docker`)](#docker-docker-duplicity-docker)
+  - [Nextcloud (`docker-duplicity-nextcloud`)](#nextcloud-docker-duplicity-nextcloud)
   - [Amazon S3 (`*-s3`)](#amazon-s3--s3)
 - [Development](#development)
   - [Testing](#testing)
@@ -463,6 +464,10 @@ services:
       OPTIONS: --s3-european-buckets --s3-use-new-style
       PASSPHRASE: example backup encryption secret
 ```
+
+### Nextcloud (`docker-duplicity-nextcloud`)
+
+_TODO_
 
 ### Amazon S3 (`*-s3`)
 

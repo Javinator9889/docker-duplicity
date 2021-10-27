@@ -43,6 +43,9 @@ else:
 # Get email subject
 subject = environ.get("EMAIL_SUBJECT")
 
+# Get the "EXIT_ON_ERROR" variable when running the jobs
+exit_on_error = environ.get("EXIT_ON_ERROR", "").lower() in {"1", "true"}
+
 # Get the commands we need to run
 to_run = {}
 for key, when in environ.items():
@@ -84,6 +87,11 @@ for njob, command in sorted(to_run.items()):
             "status": "Success" if ret == 0 else "Failure",
         }
     )
+    if failed and exit_on_error:
+        log.critical(
+            'Job "%s" failed and user set "EXIT_ON_ERROR" to true. No more jobs will be run'
+        )
+        break
 
 end_time = datetime.now()
 data_dict = {

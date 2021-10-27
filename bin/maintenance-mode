@@ -1,0 +1,35 @@
+#!/bin/sh
+
+if [ -z ${NEXTCLOUD_USER} ]; then
+    echo 'Nextcloud HTTP user not set! Please, define the "NEXTCLOUD_USER" environment variable' >&2
+    exit 1
+fi
+
+if [ "$#" -ne 1 ]; then
+    echo "Expected one arg, got $#" >&2
+    exit 1
+fi
+
+case "$1" in
+    on|ON|On|1|true|enable)
+        MODE="--on"
+    ;;
+    off|OFF|Off|0|false|disable)
+        MODE="--off"
+    ;;
+    *)
+        echo "Unrecognized option \"$1\"" >&2
+        exit 1
+    ;;
+esac
+
+# save current directory
+CDIR=$(pwd)
+# and change into the Nextcloud HTTP one
+cd ${NEXTCLOUD_HTTP_DIR}
+# change maintenance mode
+su-exec ${NEXTCLOUD_USER} php occ maintenance:mode ${MODE}
+RET=$?
+# and return to our source dir
+cd ${CDIR}
+exit ${RET}
