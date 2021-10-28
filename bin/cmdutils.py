@@ -20,6 +20,7 @@ import re
 import shlex
 from string import Template
 from subprocess import PIPE, Popen
+import subprocess
 from sys import stderr
 from typing import MutableMapping
 
@@ -28,7 +29,7 @@ def run(
     cmd: str,
     env: MutableMapping = None,
     log: logging.Logger = None,
-    shell=False,
+    shell: bool = False,
 ) -> tuple[int, str]:
     """Runs the given command by using the `subprocess` module, wraps the
     output and prints it line by line while it's still running. When finished,
@@ -46,9 +47,12 @@ def run(
         log (logging.Logger, optional): log instance to use when outputting debug
                                         information or similar. If no specified, uses
                                         system logger. Defaults to None.
+        shell (bool, optional): whether if the command should be run inside a shell
+                                or can be executed "as is". Defaults to False
 
     Returns:
-        int: command return code
+        tuple[int, str]: command return code and command output (stdout if all OK,
+                         stderr if not)
     """
     if env is None:
         env = os.environ
@@ -60,18 +64,37 @@ def run(
         info = log.info
         error = log.error
 
+    # define standard line reader if the opened process is NOT A SHELL
+    # Based on: https://stackoverflow.com/a/803421/8597016
+    def std_line_reader(proc: subprocess.Popen):
+        for line in proc.stdout:
+            if line:
+                info(line.strip())
+
+    # define a shell line reader if the opened process is A SHELL
+    # Based on: https://stackoverflow.com/a/30214720/8597016
+    def shell_line_reader(proc: subprocess.Popen):
+        while proc.poll() is None:
+            line = proc.stdout.readline()
+            if line:
+                info(line.strip())
+
     cmd = Template(cmd).safe_substitute(env)
+    if shell:
+        read_lines = shell_line_reader
+    else:
+        cmd = shlex.split(cmd)
+        read_lines = std_line_reader
 
     with Popen(
-        cmd if shell else shlex.split(cmd),
+        cmd,
         stdout=PIPE,
         stderr=PIPE,
         bufsize=1,
         universal_newlines=True,
         shell=shell,
     ) as proc:
-        for line in proc.stdout:
-            info(line)
+        read_lines(proc)
 
         ret = proc.returncode
         if ret != 0:

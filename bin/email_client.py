@@ -66,7 +66,8 @@ class Email:
         # set message data
         multipart_msg["Subject"] = self.subject
         multipart_msg["From"] = self.from_addrs
-        multipart_msg["To"] = self.recipients
+        # recipients must be an string, not list
+        multipart_msg["To"] = ", ".join(self.recipients)
 
         msg = self.jinja.render(r"body.jinja", obj)
         markdown = mistune.Markdown(renderer=HighlightRenderer())
