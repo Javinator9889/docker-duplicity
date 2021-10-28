@@ -69,7 +69,7 @@ RUN set -e; apk add --no-cache --virtual .build \
         openssl-dev \
         cargo \
     # Runtime dependencies, based on https://gitlab.com/duplicity/duplicity/-/blob/master/requirements.txt
-    && pip install --no-cache-dir --install-option="--jobs=$(nproc)" -r requirements.txt \
+    && pip install --no-cache-dir -r requirements.txt \
     && apk del .build \
     && rm -rf /root/.cargo
 
