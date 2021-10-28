@@ -18,9 +18,9 @@ import logging
 import os
 import re
 import shlex
+import subprocess
 from string import Template
 from subprocess import PIPE, Popen
-import subprocess
 from sys import stderr
 from typing import MutableMapping
 
@@ -69,7 +69,7 @@ def run(
     def std_line_reader(proc: subprocess.Popen):
         for line in proc.stdout:
             if line:
-                info(line.strip())
+                info(line)
 
     # define a shell line reader if the opened process is A SHELL
     # Based on: https://stackoverflow.com/a/30214720/8597016
@@ -77,7 +77,7 @@ def run(
         while proc.poll() is None:
             line = proc.stdout.readline()
             if line:
-                info(line.strip())
+                info(line)
 
     cmd = Template(cmd).safe_substitute(env)
     if shell:

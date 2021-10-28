@@ -120,13 +120,13 @@ with lock:
         log.info("Running job %d: `%s`", njob, safe_command)
 
         # we do not want to use our logger if executing "dup" command as it uses its own logger
-        cmd_logger = None if re.match(r"^dup\s+", expanded_command) is not None else log
-        # if the command is not `dup` it is an arbitrary shell command, which should be run
-        # using the "shell" parameter to `True`
-        is_shell_script = cmd_logger is not None
-        ret, res = cmdutils.run(expanded_command, log=cmd_logger, shell=is_shell_script)
+        cmd_logger = None if expanded_command.startswith("dup ") else log
+
+        # here we launch the command ALWAYS as a subshell as there may be env variables
+        # that need to be substituted or commands substitution themselves
+        ret, res = cmdutils.run(expanded_command, log=cmd_logger, shell=True)
         if ret != 0:
-            log.critical("Failure during execution job!")
+            log.critical("Failure during job execution!")
             log.critical(res)
             failed = True
 
@@ -164,7 +164,7 @@ end_time = datetime.now()
 data_dict = {
     "start_time": start_time,
     "finished_time": end_time,
-    "duration": timedelta(microseconds=(end_time - start_time).microseconds),
+    "backup_time": timedelta(microseconds=(end_time - start_time).microseconds),
     "jobs": job_list,
     "periodicity": periodicity,
     "hostname": getfqdn(),

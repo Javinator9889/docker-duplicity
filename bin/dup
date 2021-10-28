@@ -33,5 +33,7 @@ cmd = f"duplicity {options} {options_extra} {args}"
 log.info('Running command: "%s"', cmd)
 
 # start the run and output constantly to console. This is the
-# latest command we run, so directly exit the script when done
-sys.exit(cmdutils.run(cmd, log=log)[0])
+# latest command we run, so directly exit the script when done.
+# In addition, some args are obtained directly from console so
+# we need to run this command as a shell command
+sys.exit(cmdutils.run(cmd, log=log, shell=True)[0])

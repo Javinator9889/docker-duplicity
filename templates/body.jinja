@@ -1,20 +1,30 @@
 ## Backup {{ backup_status }}
 Host: {{ hostname }}
+
 Periodicity: {{ periodicity }}
+
 Started at: {{ start_time }}
+
 Finished at: {{ finished_time }}
+
 Duration: {{ backup_time }}
 
 * * *
 
 ## Job details
+
 {% for job in jobs %}
 ### Job {{ job.id }}
 Started at: {{ job.start_time }}
+
 Finished at: {{ job.finished_time }}
+
 Duration: {{ job.duration }}
+
 Status: {{ job.success }}
+
 Command:
+
 ```bash
 {{ job.safe_command }}
 ```
@@ -25,4 +35,6 @@ Command:
 {{ job.output }}
 ```
 </details>
+
+
 {% endfor %}
