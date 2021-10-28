@@ -153,14 +153,14 @@ RUN set -e; apk add --no-cache su-exec php-cli \
 # ├─ JOB_200 -> make a PostgreSQL copy for the Nextcloud database
 # ├─ JOB_300 -> make an entire copy of the Nextcloud installation
 # └─ JOB_600 -> remove Nextcloud from maintenance mode
-ENV JOB_100_WHAT set -euo pipefail; maintenance-mode on
+ENV JOB_100_WHAT set -eu; maintenance-mode on
 ENV JOB_100_WHEN="daily weekly"
 
-ENV JOB_200_WHAT set -euo pipefail; pg_dump --dbname \${NEXTCLOUD_DB} --no-owner --no-privileges --file \"\${NEXTCLOUD_DB_DIR}/\${NEXTCLOUD_DB}.sql\"
+ENV JOB_200_WHAT set -eu; pg_dump --dbname \${NEXTCLOUD_DB} --no-owner --no-privileges --file \"\${NEXTCLOUD_DB_DIR}/\${NEXTCLOUD_DB}.sql\"
 ENV JOB_200_WHEN='daily weekly' \
     PGHOST=db
 
-ENV JOB_600_WHAT set -euo pipefail; maintenance-mode off
+ENV JOB_600_WHAT set -eu; maintenance-mode off
 ENV JOB_600_WHEN="daily weekly"
 
 ENV NEXTCLOUD_DATA_DIR="\${SRC}/nextcloud/data" \
@@ -190,14 +190,14 @@ RUN set -e; apk add --no-cache su-exec php-cli \
 # ├─ JOB_200 -> make a PostgreSQL copy for the Nextcloud database
 # ├─ JOB_300 -> make an entire copy of the Nextcloud installation
 # └─ JOB_600 -> remove Nextcloud from maintenance mode
-ENV JOB_100_WHAT set -euo pipefail; maintenance-mode on
+ENV JOB_100_WHAT set -eu; maintenance-mode on
 ENV JOB_100_WHEN="daily weekly"
 
-ENV JOB_200_WHAT set -euo pipefail; mysqldump -u\${MYSQL_USER} -p\${MYSQL_PASSWD} -h\${MYSQL_HOST} --opt --result-file="\${NEXTCLOUD_DB_DIR}/\${NEXTCLOUD_DB}" \${NEXTCLOUD_DB}
+ENV JOB_200_WHAT set -eu; mysqldump -u\${MYSQL_USER} -p\${MYSQL_PASSWD} -h\${MYSQL_HOST} --opt --result-file="\${NEXTCLOUD_DB_DIR}/\${NEXTCLOUD_DB}" \${NEXTCLOUD_DB}
 ENV JOB_200_WHEN='daily weekly' \
     PGHOST=db
 
-ENV JOB_600_WHAT set -euo pipefail; maintenance-mode off
+ENV JOB_600_WHAT set -eu; maintenance-mode off
 ENV JOB_600_WHEN="daily weekly"
 
 ENV NEXTCLOUD_DATA_DIR="\${SRC}/nextcloud/data" \
