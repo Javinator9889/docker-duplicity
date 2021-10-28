@@ -18,11 +18,23 @@ import logging
 import os
 import re
 import shlex
-import subprocess
 from string import Template
-from subprocess import PIPE, Popen
-from sys import stderr
+from subprocess import PIPE, STDOUT, Popen
 from typing import MutableMapping
+
+
+def is_blank(s: str) -> bool:
+    """Checks if the given string is blank or not
+
+    Args:
+        s (str): string to check
+
+    Returns:
+        bool: self explanatory
+    """
+    if not isinstance(s, str):
+        return False
+    return not (s and s.strip())
 
 
 def run(
@@ -59,50 +71,31 @@ def run(
 
     if log is None:
         info = lambda text: print(text, end="", flush=True)
-        error = lambda text: print(text, end="", file=stderr, flush=True)
     else:
-        info = log.info
-        error = log.error
-
-    # define standard line reader if the opened process is NOT A SHELL
-    # Based on: https://stackoverflow.com/a/803421/8597016
-    def std_line_reader(proc: subprocess.Popen):
-        for line in proc.stdout:
-            if line:
-                info(line)
-
-    # define a shell line reader if the opened process is A SHELL
-    # Based on: https://stackoverflow.com/a/30214720/8597016
-    def shell_line_reader(proc: subprocess.Popen):
-        while proc.poll() is None:
-            line = proc.stdout.readline()
-            if line:
-                info(line)
+        # if we are using logger, remove endings
+        info = lambda text: log.info(text.strip())
 
     cmd = Template(cmd).safe_substitute(env)
-    if shell:
-        read_lines = shell_line_reader
-    else:
+    if not shell:
         cmd = shlex.split(cmd)
-        read_lines = std_line_reader
 
+    output = []
     with Popen(
         cmd,
         stdout=PIPE,
-        stderr=PIPE,
+        stderr=STDOUT,
         bufsize=1,
         universal_newlines=True,
         shell=shell,
     ) as proc:
-        read_lines(proc)
+        for line in proc.stdout:
+            if not is_blank(line):
+                output.append(line)
+                info(line)
 
-        ret = proc.returncode
-        if ret != 0:
-            output = proc.stderr.read()
-            error(output)
-        else:
-            output = proc.stdout.read()
+        ret = proc.wait()
 
+    output = "".join(output)
     return ret, output
 
 

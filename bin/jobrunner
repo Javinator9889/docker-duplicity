@@ -3,7 +3,7 @@
 import os
 import re
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime
 from os import environ, path
 from pathlib import Path
 from socket import getfqdn
@@ -134,12 +134,12 @@ with lock:
         job_list.append(
             {
                 "id": njob,
-                "start_time": job_start,
-                "end_time": job_end,
-                "duration": timedelta(microseconds=(job_end - job_start).microseconds),
+                "start_time": job_start.ctime(),
+                "finished_time": job_end.ctime(),
+                "duration": job_end - job_start,
                 "command": safe_command,
                 "output": res,
-                "status": "Success" if ret == 0 else "Failure",
+                "status": "success" if ret == 0 else "failure",
             }
         )
         if failed and exit_on_error:
@@ -162,9 +162,9 @@ queue_file.unlink(missing_ok=True)
 
 end_time = datetime.now()
 data_dict = {
-    "start_time": start_time,
-    "finished_time": end_time,
-    "backup_time": timedelta(microseconds=(end_time - start_time).microseconds),
+    "start_time": start_time.ctime(),
+    "finished_time": end_time.ctime(),
+    "backup_time": end_time - start_time,
     "jobs": job_list,
     "periodicity": periodicity,
     "hostname": getfqdn(),

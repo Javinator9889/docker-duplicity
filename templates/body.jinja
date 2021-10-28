@@ -21,17 +21,17 @@ Finished at: {{ job.finished_time }}
 
 Duration: {{ job.duration }}
 
-Status: {{ job.success }}
+Status: {{ job.status }}
 
 Command:
 
 ```bash
-{{ job.safe_command }}
+{{ job.command }}
 ```
-
 <details>
 <summary>Log output</summary>
-```
+
+```dmesg
 {{ job.output }}
 ```
 </details>
