@@ -1,6 +1,6 @@
 #!/bin/sh
 
-if [ -z ${NEXTCLOUD_USER} ]; then
+if [ -z "${NEXTCLOUD_USER}" ]; then
     echo 'Nextcloud HTTP user not set! Please, define the "NEXTCLOUD_USER" environment variable' >&2
     exit 1
 fi
@@ -23,13 +23,20 @@ case "$1" in
     ;;
 esac
 
+# get group from env or default to the given user as the group
+if [ -z "${NEXTCLOUD_GROUP}" ]; then
+    GROUP="${NEXTCLOUD_USER}"
+else
+    GROUP="${NEXTCLOUD_GROUP}"
+fi
+
 # save current directory
-CDIR=$(pwd)
+CDIR="$(pwd)"
 # and change into the Nextcloud HTTP one
-cd ${NEXTCLOUD_HTTP_DIR}
+cd "${NEXTCLOUD_HTTP_DIR}"
 # change maintenance mode
-su-exec ${NEXTCLOUD_USER} php occ maintenance:mode ${MODE}
-RET=$?
+su-exec ${NEXTCLOUD_USER}:${GROUP} php --define apc.enable_cli=1 occ maintenance:mode "${MODE}"
+RET="$?"
 # and return to our source dir
-cd ${CDIR}
-exit ${RET}
+cd "${CDIR}"
+exit "${RET}"

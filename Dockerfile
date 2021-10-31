@@ -139,10 +139,78 @@ ENV JOB_500_WHAT='dup full $SRC $DST' \
 # needs
 FROM postgres AS nextcloud-postgres
 
-# First, install the "su-exec" binary as Nextcloud requires running some commands as
+# First, install the "gosu" binary as Nextcloud requires running some commands as
 # the HTTP user for keeping correct permissions and else. In addition, we install
 # PHP CLI for interacting with the command
-RUN set -e; apk add --no-cache su-exec php-cli \
+RUN set -e; apk add --no-cache gosu php7-cli \
+    php7-intl \
+    php7-openssl \
+    php7-dba \
+    php7-sqlite3 \
+    php7-pear \
+    php7-tokenizer \
+    php7-phpdbg \
+    php7-litespeed \
+    php7-gmp \
+    php7-pdo_mysql \
+    php7-sodium \
+    php7-pcntl \
+    php7-common \
+    php7-xsl \
+    php7-fpm \
+    php7-mysqlnd \
+    php7-enchant \
+    php7-pspell \
+    php7-snmp \
+    php7-doc \
+    php7-fileinfo \
+    php7-mbstring \
+    php7-xmlrpc \
+    php7-xmlreader \
+    php7-pdo_sqlite \
+    php7-exif \
+    php7-opcache \
+    php7-ldap \
+    php7-posix \
+    php7-session \
+    php7-gd \
+    php7-gettext \
+    php7-json \
+    php7-xml \
+    php7-iconv \
+    php7-sysvshm \
+    php7-curl \
+    php7-shmop \
+    php7-odbc \
+    php7-phar \
+    php7-pdo_pgsql \
+    php7-imap \
+    php7-pdo_dblib \
+    php7-pgsql \
+    php7-pdo_odbc \
+    php7-zip \
+    php7-apache2 \
+    php7-cgi \
+    php7-ctype \
+    php7-bcmath \
+    php7-calendar \
+    php7-tidy \
+    php7 \
+    php7-dom \
+    php7-sockets \
+    php7-dbg \
+    php7-soap \
+    php7-sysvmsg \
+    php7-ffi \
+    php7-embed \
+    php7-ftp \
+    php7-sysvsem \
+    php7-pdo \
+    php7-static \
+    php7-bz2 \
+    php7-mysqli \
+    php7-simplexml \
+    php7-xmlwriter \
     # verify that the binary works
     && su-exec nobody true
 
@@ -163,9 +231,9 @@ ENV JOB_200_WHEN='daily weekly' \
 ENV JOB_600_WHAT set -eu; maintenance-mode off
 ENV JOB_600_WHEN="daily weekly"
 
-ENV NEXTCLOUD_DATA_DIR="\${SRC}/nextcloud/data" \
-    NEXTCLOUD_HTTP_DIR="\${SRC}/nextcloud/www" \
-    NEXTCLOUD_DB_DIR="\${SRC}/nextcloud/db"
+ENV NEXTCLOUD_DATA_DIR="$SRC/nextcloud/data" \
+    NEXTCLOUD_HTTP_DIR="$SRC/nextcloud/www" \
+    NEXTCLOUD_DB_DIR="$SRC/nextcloud"
 
 
 FROM nextcloud-postgres AS nextcloud-postgres-s3
@@ -176,10 +244,80 @@ ENV JOB_500_WHAT='dup full $SRC $DST' \
 
 FROM mysql AS nextcloud-mysql
 
-# First, install the "su-exec" binary as Nextcloud requires running some commands as
+# First, install the "gosu" binary as Nextcloud requires running some commands as
 # the HTTP user for keeping correct permissions and else. In addition, we install
 # PHP CLI for interacting with the command
-RUN set -e; apk add --no-cache su-exec php-cli \
+RUN set -e; apk add --no-cache gosu php7-cli \
+    php7-apcu \
+    php7-redis \
+    php7-intl \
+    php7-openssl \
+    php7-dba \
+    php7-sqlite3 \
+    php7-pear \
+    php7-tokenizer \
+    php7-phpdbg \
+    php7-litespeed \
+    php7-gmp \
+    php7-pdo_mysql \
+    php7-sodium \
+    php7-pcntl \
+    php7-common \
+    php7-xsl \
+    php7-fpm \
+    php7-mysqlnd \
+    php7-enchant \
+    php7-pspell \
+    php7-snmp \
+    php7-doc \
+    php7-fileinfo \
+    php7-mbstring \
+    php7-xmlrpc \
+    php7-xmlreader \
+    php7-pdo_sqlite \
+    php7-exif \
+    php7-opcache \
+    php7-ldap \
+    php7-posix \
+    php7-session \
+    php7-gd \
+    php7-gettext \
+    php7-json \
+    php7-xml \
+    php7-iconv \
+    php7-sysvshm \
+    php7-curl \
+    php7-shmop \
+    php7-odbc \
+    php7-phar \
+    php7-pdo_pgsql \
+    php7-imap \
+    php7-pdo_dblib \
+    php7-pgsql \
+    php7-pdo_odbc \
+    php7-zip \
+    php7-apache2 \
+    php7-cgi \
+    php7-ctype \
+    php7-bcmath \
+    php7-calendar \
+    php7-tidy \
+    php7 \
+    php7-dom \
+    php7-sockets \
+    php7-dbg \
+    php7-soap \
+    php7-sysvmsg \
+    php7-ffi \
+    php7-embed \
+    php7-ftp \
+    php7-sysvsem \
+    php7-pdo \
+    php7-static \
+    php7-bz2 \
+    php7-mysqli \
+    php7-simplexml \
+    php7-xmlwriter \
     # verify that the binary works
     && su-exec nobody true
 
@@ -200,9 +338,9 @@ ENV JOB_200_WHEN='daily weekly' \
 ENV JOB_600_WHAT set -eu; maintenance-mode off
 ENV JOB_600_WHEN="daily weekly"
 
-ENV NEXTCLOUD_DATA_DIR="\${SRC}/nextcloud/data" \
-    NEXTCLOUD_HTTP_DIR="\${SRC}/nextcloud/www" \
-    NEXTCLOUD_DB_DIR="\${SRC}/nextcloud/db"
+ENV NEXTCLOUD_DATA_DIR="$SRC/nextcloud/data" \
+    NEXTCLOUD_HTTP_DIR="$SRC/nextcloud/www" \
+    NEXTCLOUD_DB_DIR="$SRC/nextcloud"
 
 
 FROM nextcloud-mysql AS nextcloud-mysql-s3
