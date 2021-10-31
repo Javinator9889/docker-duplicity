@@ -106,8 +106,8 @@ class Email:
                     smtp.login(self.smtp_user, self.smtp_pass)
 
                 smtp.sendmail(self.from_addrs, self.recipients, self.message)
-            except Exception as e:
-                self.log.exception("Failed to send SMTP email!", exc_info=e)
+            except Exception as exc:
+                self.log.exception("Failed to send SMTP email!", exc_info=exc)
             finally:
                 if smtp is not None:
                     smtp.quit()

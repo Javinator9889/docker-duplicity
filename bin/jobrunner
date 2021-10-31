@@ -138,7 +138,7 @@ with lock:
                 "finished_time": job_end.ctime(),
                 "duration": job_end - job_start,
                 "command": safe_command,
-                "output": res,
+                "output": cmdutils.print_command(res),
                 "status": "success" if ret == 0 else "failure",
             }
         )
@@ -181,4 +181,7 @@ email.message = data_dict
 email.send()
 
 if failed:
+    log.error("At least one %s job failed", periodicity)
     sys.exit("At least one job failed")
+else:
+    log.info("All %s jobs finished correctly", periodicity)

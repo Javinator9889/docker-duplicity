@@ -21,7 +21,8 @@ ENV CRONTAB_15MIN='*/15 * * * *' \
     SMTP_TLS='' \
     SMTP_USER='' \
     SRC='/mnt/backup/src' \
-    EXIT_ON_ERROR='false'
+    EXIT_ON_ERROR='false' \
+    LOG_LEVEL='INFO'
 
 ENTRYPOINT [ "/usr/local/bin/entrypoint" ]
 CMD ["/usr/sbin/crond", "-fd8"]

@@ -70,10 +70,10 @@ def run(
         env = os.environ
 
     if log is None:
-        info = lambda text: print(text, end="", flush=True)
+        debug = lambda text: print(text, end="", flush=True)
     else:
         # if we are using logger, remove endings
-        info = lambda text: log.info(text.strip())
+        debug = lambda text: log.debug(text.strip())
 
     cmd = Template(cmd).safe_substitute(env)
     if not shell:
@@ -91,7 +91,7 @@ def run(
         for line in proc.stdout:
             if not is_blank(line):
                 output.append(line)
-                info(line)
+                debug(line)
 
         ret = proc.wait()
 
