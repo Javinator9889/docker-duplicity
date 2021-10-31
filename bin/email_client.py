@@ -25,6 +25,22 @@ from logging_utils import get_logger
 
 
 class Email:
+    """Email class that wraps the logic of writing HTML emails that will be
+    sent to one or multiple recipients. The class exposes all of its attributes
+    and expects a dictionary at `message` parameter for rendering the Jinja
+    template. Finally, `send` delives the email and finishes.
+
+    Args:
+        host (str, optional): SMTP host to connect to
+        port (int, optional): SMTP port used when connecting
+        user (str, optional): SMTP user used during authentication
+        password (str, optional): SMTP password used during authentication
+        tls (bool, optional): whether to use TLS connections instead of STARTTLS
+        from_addrs (str, optional): sender address
+        to_addrs (str, optional): recipient(s) address(es)
+        subject (str, optional): mail subject
+    """
+
     def __init__(
         self,
         host: str = None,
@@ -55,11 +71,22 @@ class Email:
         self.jinja = Jinja()
 
     @property
-    def message(self):
+    def message(self) -> str:
+        """Gets the generated multipart message which will be the body of the email
+
+        Returns:
+            str: the email's body
+        """
         return self._message
 
     @message.setter
     def message(self, obj: dict[str, object]):
+        """Sets the dictionary that defines the body of the email and generates
+        the associated template.
+
+        Args:
+            obj (dict[str, object]): template's base dictionary
+        """
         multipart_msg = MIMEMultipart("alternative")
 
         # set message data
@@ -83,6 +110,10 @@ class Email:
         self._message = multipart_msg.as_string()
 
     def send(self):
+        """Sends the email to the given recipients iff all required parameters
+        are defined, that is: SMTP host, port, sender address, recipient(s)
+        address(es) and subject.
+        """
         if all(
             (
                 self.smtp_host,

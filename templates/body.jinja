@@ -30,6 +30,7 @@ Command:
 </div>
 
 
+{% if job.output is defined and job.output != "" %}
 <details>
 <summary>Log output</summary>
 
@@ -38,5 +39,6 @@ Command:
 </div>
 </details>
 
+{% endif %}
 
 {% endfor %}

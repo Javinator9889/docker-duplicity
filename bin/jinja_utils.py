@@ -18,6 +18,10 @@ from jinja2 import Environment, FileSystemLoader
 
 
 class Jinja:
+    """Singleton class that manages the entire logic of rendering Jinja
+    templates.
+    """
+
     __instance__ = None
 
     # This is a singleton class, which means that it's created
@@ -41,5 +45,15 @@ class Jinja:
             )
 
     def render(self, template: str, data: dict[str, object]) -> str:
+        """Renders the given template into an string by using the configuration
+        dictionary.
+
+        Args:
+            template (str): template path
+            data (dict[str, object]): configuration dictionary
+
+        Returns:
+            str: the rendered template
+        """
         tmpl = self.env.get_template(template)
         return tmpl.render(data)

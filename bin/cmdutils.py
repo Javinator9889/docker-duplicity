@@ -50,7 +50,7 @@ def run(
 
     Args:
         cmd (str): command to run. Notice that this command will be splitted
-                   by using `shelx`. See: https://docs.python.org/3/library/shlex.html
+                   by using `shlex`. See: https://docs.python.org/3/library/shlex.html
                    for more information.
         env (MuttableMapping, optional): environment variables that will be
                                          substituted, if any. When not given, gets
