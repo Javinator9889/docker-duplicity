@@ -140,10 +140,12 @@ ENV JOB_500_WHAT='dup full $SRC $DST' \
 # needs
 FROM postgres AS nextcloud-postgres
 
-# First, install the "gosu" binary as Nextcloud requires running some commands as
+# First, install the "su-exec" binary as Nextcloud requires running some commands as
 # the HTTP user for keeping correct permissions and else. In addition, we install
 # PHP CLI for interacting with the command
-RUN set -e; apk add --no-cache gosu php7-cli \
+RUN set -e; apk add --no-cache su-exec php7-cli \
+    php7-apcu \
+    php7-redis \
     php7-intl \
     php7-openssl \
     php7-dba \
@@ -245,10 +247,10 @@ ENV JOB_500_WHAT='dup full $SRC $DST' \
 
 FROM mysql AS nextcloud-mysql
 
-# First, install the "gosu" binary as Nextcloud requires running some commands as
+# First, install the "su-exec" binary as Nextcloud requires running some commands as
 # the HTTP user for keeping correct permissions and else. In addition, we install
 # PHP CLI for interacting with the command
-RUN set -e; apk add --no-cache gosu php7-cli \
+RUN set -e; apk add --no-cache su-exec php7-cli \
     php7-apcu \
     php7-redis \
     php7-intl \
