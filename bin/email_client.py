@@ -22,7 +22,6 @@ from smtplib import SMTP, SMTP_SSL
 import mistune
 from jinja_utils import Jinja
 from logging_utils import get_logger
-from md import HighlightRenderer
 
 
 class Email:
@@ -70,7 +69,7 @@ class Email:
         multipart_msg["To"] = ", ".join(self.recipients)
 
         msg = self.jinja.render(r"body.jinja", obj)
-        markdown = mistune.Markdown(renderer=HighlightRenderer())
+        markdown = mistune.Markdown()
         md_message = markdown(msg)
 
         html = self.jinja.render(r"email.jinja", {"email_body": md_message})

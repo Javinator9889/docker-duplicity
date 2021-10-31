@@ -25,15 +25,17 @@ Status: {{ job.status }}
 
 Command:
 
-```bash
-{{ job.command }}
-```
+<div style="max-width:600px;max-height:600px;overflow:auto;overflow-y:auto;width:100%">
+<pre><code>{{ job.command }}</code></pre>
+</div>
+
+
 <details>
 <summary>Log output</summary>
 
-```dmesg
-{{ job.output }}
-```
+<div style="max-width:600px;max-height:600px;overflow:auto;overflow-y:auto;width:100%">
+<pre><code>{{ job.output }}</code></pre>
+</div>
 </details>
 
 
