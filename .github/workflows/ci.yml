@@ -78,6 +78,10 @@ jobs:
           - postgres-s3
           - mysql
           - mysql-s3
+          - nextcloud-postgres
+          - nextcloud-postgres-s3
+          - nextcloud-mysql
+          - nextcloud-mysql-s3
           - s3
     steps:
       # Set up Docker Environment

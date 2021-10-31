@@ -1,35 +1,83 @@
 #!/usr/bin/env python
 """Run all commands extracted from environment variables when they should."""
-
-from __future__ import unicode_literals
-
-import logging
+import os
 import re
-import smtplib
 import sys
 from datetime import datetime
-from email.utils import formatdate
 from os import environ, path
+from pathlib import Path
 from socket import getfqdn
 from string import Template
-from subprocess import STDOUT, CalledProcessError, check_output
+from time import sleep
 
-logging.basicConfig(level=logging.INFO)
-logging.root.name = "jobrunner"
+import cmdutils
+import fasteners
+from email_client import Email
+from logging_utils import get_logger
+
+TMP_JOB_PATH = r"/tmp"
+RUNNER_FILE = "jobrunner."
+
+start_time = datetime.now()
+
+log = get_logger()
+log.name = "jobrunner"
 
 # Get expected periodicity from this script's placement
 periodicity = path.basename(path.dirname(path.abspath(__file__)))
-logging.info("%s UTC - Running %s jobs", datetime.utcnow(), periodicity)
+log.info("Running %s jobs", periodicity)
 
-# Get email settings
-smtp_host = environ.get("SMTP_HOST")
-smtp_port = environ.get("SMTP_PORT")
-smtp_user = environ.get("SMTP_USER")
-smtp_pass = environ.get("SMTP_PASS", "")
-smtp_tls = environ.get("SMTP_TLS", "").lower() in {"1", "true"}
-from_ = environ.get("EMAIL_FROM")
-to = environ.get("EMAIL_TO")
+# Here we define the following algorithm:
+#  1. There is a running process (suffixed with a '.1') and
+#     at most one waiting process (suffixed with a '.2')
+#
+#  2. If there are no free slots, we immediately quit as one
+#     job is already running and the other one is waiting.
+#
+#  3. In other case, we define *two* lock files: the one
+#     corresponding to the running process and the other one
+#     to our position in the queue. Notice that both files
+#     can be the same if there is no process waiting in the
+#     queue.
+#
+#  4. Before trying to access for running the jobs, we try
+#     to acquire the lock. If we are in the waiting queue,
+#     we will be locked from entering until the lock is released.
+#
+#  5. When we acquire the lock, a check is required to see if we
+#     were in the waiting queue, in order to remove the queue file.
+#     This can be easily checked by seeing if `ME` is 2.
+#
+#  6. Finally, when all jobs are done, we release the lock and check
+#     if any other process is now holding it. If `True`, the lock
+#     is kept intact. In other case, it means that we are the only
+#     process holding the file so we can safely remove it.
+#
+# Check if there is another jobrunning running and another
+# waiting. We implement a queue-like system based on files
+runners_exists = (
+    os.path.exists(f"{TMP_JOB_PATH}/{RUNNER_FILE}-{periodicity}.1"),
+    os.path.exists(f"{TMP_JOB_PATH}/{RUNNER_FILE}-{periodicity}.2"),
+)
+
+if all(runners_exists):
+    log.warning("Already two runners are enqueued. Exiting...")
+    sys.exit(0)
+else:
+    # prevent any other runner to "join the party"
+    ME = 1 if runners_exists[0] else 2
+    running_file = Path(f"{TMP_JOB_PATH}/{RUNNER_FILE}-{periodicity}.1")
+    queue_file = Path(f"{TMP_JOB_PATH}/{RUNNER_FILE}-{periodicity}.{ME}")
+    # we create the file here so no other process tries to enqueue, if
+    # we are the '.2'
+    queue_file.touch(mode=0o644)
+    lock = fasteners.InterProcessLock(running_file, logger=log)
+
+# Get email subject
 subject = environ.get("EMAIL_SUBJECT")
+
+# Get the "EXIT_ON_ERROR" variable when running the jobs
+exit_on_error = environ.get("EXIT_ON_ERROR", "").lower() in {"1", "true"}
 
 # Get the commands we need to run
 to_run = {}
@@ -40,83 +88,100 @@ for key, when in environ.items():
         to_run[njob] = environ["JOB_{}_WHAT".format(njob)]
 
 if not to_run:
-    logging.info("Nothing to do")
+    log.info("Nothing to do")
+    # release the lock file before exiting
+    with fasteners.try_lock(lock) as gotten:
+        # we are the only process that has the lock, so remove it.
+        # If there is any other process expecting to enter but we
+        # have removed the lock, there is no problem at all as that
+        # process will create the lock if necessary
+        if gotten:
+            log.debug("Removing running lock file...")
+            running_file.unlink(missing_ok=True)
+
+    log.debug("Removing queue file from system...")
+    queue_file.unlink(missing_ok=True)
     sys.exit()
 
-# Run commands in order
-message = [
-    "From: {}".format(from_),
-    "To: {}".format(to),
-    "Date: {}".format(formatdate()),
-    "",
-]
-failed = False
-for njob, command in sorted(to_run.items()):
-    expanded_command = Template(command).safe_substitute(environ)
-    start = datetime.now()
-    logging.info("Running job %d: `%s`", njob, expanded_command)
-    try:
-        result = check_output(expanded_command, stderr=STDOUT, shell=True, text=True)
-        success = True
-    except CalledProcessError as error:
-        failed = True
-        success = False
-        result = str(error) + "\n" + error.output
-        logging.exception("Failed!")
-    end = datetime.now()
-    log = [
-        "",
-        "===================================",
-        "Job {}: `{}`".format(njob, expanded_command),
-        "Started: {!s}".format(start),
-        "Finished: {!s}".format(end),
-        "Success: {!s}".format(success),
-        "",
-        result,
-    ]
-    logging.log(logging.INFO if success else logging.ERROR, "\n".join(log))
-    message += log
+# hold the file lock until finished. Then, delete the file so another
+# job can start running
+with lock:
+    # we were waiting in the queue, so remove that file in order to allow
+    # enqueueing another process
+    if ME == 2:
+        queue_file.unlink(missing_ok=True)
 
+    failed = False
+    job_list = []
+    for njob, command in sorted(to_run.items()):
+        expanded_command = Template(command).safe_substitute(environ)
+        job_start = datetime.now()
+        safe_command = cmdutils.print_command(expanded_command)
+        log.info("Running job %d: `%s`", njob, safe_command)
 
-# Report results
-if all((smtp_host, smtp_port, from_, to, subject)):
-    logging.info("Sending email report")
-    message.insert(
-        0,
-        "Subject: {}".format(
-            subject.format(
-                hostname=getfqdn(),
-                periodicity=periodicity,
-                result="ERROR" if failed else "OK",
+        # we do not want to use our logger if executing "dup" command as it uses its own logger
+        cmd_logger = None if expanded_command.startswith("dup ") else log
+
+        # here we launch the command ALWAYS as a subshell as there may be env variables
+        # that need to be substituted or commands substitution themselves
+        ret, res = cmdutils.run(expanded_command, log=cmd_logger, shell=True)
+        if ret != 0:
+            log.critical("Failure during job execution!")
+            log.critical(res)
+            failed = True
+
+        job_end = datetime.now()
+        job_list.append(
+            {
+                "id": njob,
+                "start_time": job_start.ctime(),
+                "finished_time": job_end.ctime(),
+                "duration": job_end - job_start,
+                "command": safe_command,
+                "output": cmdutils.print_command(res),
+                "status": "success" if ret == 0 else "failure",
+            }
+        )
+        if failed and exit_on_error:
+            log.critical(
+                'Job "%s" failed and user set "EXIT_ON_ERROR" to true. No more jobs will be run'
             )
-        ),
+            break
+
+# give sometime other process to acquire the lock if we are
+# "too fast and too furious"
+sleep(0.1)
+with fasteners.try_lock(lock) as gotten:
+    # we are the only process that holds the lock, so remove it
+    if gotten:
+        log.debug("Removing running lock file...")
+        running_file.unlink(missing_ok=True)
+
+log.debug("Removing queue file from system...")
+queue_file.unlink(missing_ok=True)
+
+end_time = datetime.now()
+data_dict = {
+    "start_time": start_time.ctime(),
+    "finished_time": end_time.ctime(),
+    "backup_time": end_time - start_time,
+    "jobs": job_list,
+    "periodicity": periodicity,
+    "hostname": getfqdn(),
+    "backup_status": "succeeded" if not failed else "failed",
+}
+
+email = Email(
+    subject=subject.format(
+        hostname=getfqdn(), periodicity=periodicity, result="ERROR" if failed else "OK"
     )
-    smtp = None
-    try:
-        if smtp_tls:
-            smtp = smtplib.SMTP_SSL(smtp_host, smtp_port)
-        else:
-            smtp = smtplib.SMTP(smtp_host, smtp_port)
-        if smtp_user:
-            smtp.ehlo()
-            # If we can encrypt this session, do it
-            if smtp.has_extn("STARTTLS"):
-                smtp.starttls()
-                smtp.ehlo()  # re-identify ourselves over TLS connection
-            smtp.login(smtp_user, smtp_pass)
-        # if we have commas at "to" then multiple recipients are defined
-        # "sendmail" accepts a list as "to" parameter, so split the variable
-        # and send it. Just to be careful, delete any whitespace present at
-        # destination email addresses
-        to_addrs = to.replace(" ", "").split(",")
-        smtp.sendmail(from_, to_addrs, "\r\n".join(message))
-    except Exception:
-        logging.exception("Failed sending email")
-    finally:
-        if smtp is not None:
-            smtp.quit()
-else:
-    logging.info("Finished")
+)
+
+email.message = data_dict
+email.send()
 
 if failed:
+    log.error("At least one %s job failed", periodicity)
     sys.exit("At least one job failed")
+else:
+    log.info("All %s jobs finished correctly", periodicity)
